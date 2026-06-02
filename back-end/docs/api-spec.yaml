@@ -1,0 +1,295 @@
+openapi: 3.0.3
+info:
+  title: SOC Alert Backend API
+  version: 1.0.0
+  description: API for uploading alerts, retrieving alerts, and sending alerts to ML prediction.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+components:
+  schemas:
+    AlertSeverity:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      description: Severity level of the alert
+
+    AlertUploadRequest:
+      type: object
+      required:
+        - source
+        - timestamp
+        - severity
+        - description
+        - srcIp
+        - dstIp
+        - eventType
+      properties:
+        source:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        description:
+          type: string
+        srcIp:
+          type: string
+        dstIp:
+          type: string
+        username:
+          type: string
+          nullable: true
+        eventType:
+          type: string
+        rawData:
+          type: object
+          nullable: true
+
+    AlertUploadResponse:
+      type: object
+      required:
+        - alertId
+        - status
+      properties:
+        alertId:
+          type: string
+        status:
+          type: string
+        errors:
+          type: array
+          nullable: true
+          items:
+            type: string
+
+    AlertResponse:
+      type: object
+      required:
+        - alertId
+        - source
+        - timestamp
+        - severity
+        - description
+        - srcIp
+        - dstIp
+        - eventType
+      properties:
+        alertId:
+          type: string
+        source:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        description:
+          type: string
+        srcIp:
+          type: string
+        dstIp:
+          type: string
+        username:
+          type: string
+          nullable: true
+        eventType:
+          type: string
+        score:
+          type: number
+          format: double
+          nullable: true
+        modelVersion:
+          type: string
+          nullable: true
+
+    AlertListResponse:
+      type: object
+      required:
+        - items
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertResponse'
+        page:
+          type: integer
+          format: int32
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          minimum: 1
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+
+    PredictRequest:
+      type: object
+      required:
+        - alertId
+        - source
+        - severity
+        - timestamp
+        - srcIp
+        - dstIp
+        - eventType
+        - description
+      properties:
+        alertId:
+          type: string
+        source:
+          type: string
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        timestamp:
+          type: string
+          format: date-time
+        srcIp:
+          type: string
+        dstIp:
+          type: string
+        username:
+          type: string
+          nullable: true
+        eventType:
+          type: string
+        description:
+          type: string
+
+    PredictResponse:
+      type: object
+      required:
+        - alertId
+        - priorityScore
+        - modelVersion
+        - timestamp
+      properties:
+        alertId:
+          type: string
+        priorityScore:
+          type: number
+          format: double
+        modelVersion:
+          type: string
+        explanation:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+paths:
+  /alerts/upload:
+    post:
+      summary: Upload a new alert
+      operationId: uploadAlert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertUploadRequest'
+      responses:
+        '200':
+          description: Alert successfully uploaded and stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertUploadResponse'
+        '400':
+          description: Invalid request payload or validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertUploadResponse'
+
+  /alerts:
+    get:
+      summary: Retrieve paginated list of alerts with optional filtering
+      operationId: getAlerts
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: severity
+          in: query
+          description: Filter by severity level
+          required: false
+          schema:
+            $ref: '#/components/schemas/AlertSeverity'
+        - name: source
+          in: query
+          description: Filter by source system
+          required: false
+          schema:
+            type: string
+        - name: eventType
+          in: query
+          description: Filter by event type
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated list of alerts
+          headers:
+            X-Total-Count:
+              description: Total number of alerts matching filter
+              schema:
+                type: integer
+                format: int64
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertListResponse'
+
+  /predict:
+    post:
+      summary: Send alert data to ML model for priority scoring
+      operationId: predictPriority
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictRequest'
+      responses:
+        '200':
+          description: Prediction successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictResponse'
+        '400':
+          description: Invalid prediction request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '503':
+          description: ML prediction service unavailable or timed out
