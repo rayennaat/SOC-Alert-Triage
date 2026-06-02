@@ -15,19 +15,9 @@ const Header: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-          <div className="border border-zinc-800 bg-zinc-950 px-4 py-3">
-            <div className="text-xs uppercase tracking-normal text-zinc-500">Mode</div>
-            <div className="mt-1 font-mono text-teal-300">ML Triage</div>
-          </div>
-          <div className="border border-zinc-800 bg-zinc-950 px-4 py-3">
-            <div className="text-xs uppercase tracking-normal text-zinc-500">Backend</div>
-            <div className="mt-1 font-mono text-zinc-200">8081</div>
-          </div>
-          <div className="col-span-2 border border-zinc-800 bg-zinc-950 px-4 py-3 sm:col-span-1">
-            <div className="text-xs uppercase tracking-normal text-zinc-500">Updated</div>
-            <div className="mt-1 font-mono text-zinc-200">Live</div>
-          </div>
+        <div className="border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm">
+          <div className="text-xs uppercase tracking-normal text-zinc-500">Updated</div>
+          <div className="mt-1 font-mono text-zinc-200">Live</div>
         </div>
       </div>
     </header>
